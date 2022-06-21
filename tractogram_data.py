@@ -1,5 +1,6 @@
 import numpy as np
 import nibabel.streamlines as nibs
+import nibabel as nib
 from numpy.linalg import norm
 from skimage.measure import marching_cubes, mesh_surface_area
 from dipy.io.streamline import load_tck
@@ -12,7 +13,7 @@ class Subject():
     Subject class to hold all the tract info / metrics / etc...
     """
 
-    def __init__(self, file_path_L:str, file_path_R:str, meta_data:dict = {}): 
+    def __init__(self, tract_L, tract_R, meta_data:dict = {}): 
         
         # you need this reference nii file to succesfully run the streamlines2vol script
         self.ref_path = "./reference.nii.gz"
@@ -21,47 +22,43 @@ class Subject():
         self.meta_data = meta_data
 
         #Left sided metrics
-        self.file_path_L = file_path_L
         
-        self.tract_L = nibs.load(self.file_path_L)
-        self.volume_L = self.streamline2volume(self.file_path_L)
+        #load tract before calling the class
+        self.tract_L = tract_L
+        self.volume_L = self.streamline2volume(self.tract_L)
         self.metrics_L = self.calculate_metrics(self.tract_L, self.volume_L)
 
         #Right sided metrics
-        self.file_path_R = file_path_R
-        self.tract_R = nibs.load(self.file_path_R)
-        self.volume_R = self.streamline2volume(self.file_path_L)
+        self.tract_R = tract_R
+        self.volume_R = self.streamline2volume(self.tract_R)
         self.metrics_R = self.calculate_metrics(self.tract_R, self.volume_R)
 
         #Combine into one df
 
         self.df = self.make_df()
 
-    
-    def streamline2volume(self,file_path):
-        """
-        Ceate volume of tract starting from the .tcks file
+    def streamline2volume(self,tract):
+            """
+            Ceate volume of tract starting from the .tcks file
 
-        Input:
-            - streamlines data
+            Input:
+                - streamlines data
 
-        Returns:
-            - 3D volume (x,y,z) of the subject tract
-        """
+            Returns:
+                - 3D volume (x,y,z) of the subject tract
+            """
+            ref_path = './reference.nii.gz'
         
-        pre_vol = load_tck(file_path,self.ref_path)
-        pre_vol.to_vox()
-        pre_vol.to_corner()
+            reference = nib.load(ref_path)
+            ref_affine= reference.affine
+            ref_dim = reference.header["dim"][1:4]
+            streamlines = tract.tractogram.streamlines 
+            
+            tract_vol = density_map(streamlines, affine=ref_affine,vol_dims=ref_dim)
 
-        pre_vol_vox = select_random_set_of_streamlines(pre_vol.streamlines,
-                                                            1000)
-        affine, dimensions, voxel_sizes, voxel_order = pre_vol.space_attributes
-        tract_vol = density_map(pre_vol_vox, np.eye(4), dimensions)
+            output_vol =  np.where(tract_vol>0.5, 1, 0) # binarize the volume
 
-        output_vol =  np.where(tract_vol>0.5, 1, 0) # binarize the volume
-
-        return output_vol 
-
+            return output_vol 
 
     def calculate_metrics(self,tract, tract_vol):
         """

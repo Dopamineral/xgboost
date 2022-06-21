@@ -3,7 +3,9 @@ from tractogram_data import Subject
 import streamlit as st
 from io import StringIO, BytesIO
 import nibabel.streamlines as nibs
-
+from dipy.tracking.utils import density_map
+import numpy as np
+import nibabel as nib
 
 st.write(
 f"""
@@ -50,29 +52,29 @@ sub_metadata = {"id":str(sub_id),
 
 if (left_file is not None) & (right_file is not None):
 
-    sub_path_L = left_file
-    test = nibs.load(sub_path_L)
-    st.write(test)
+    
+    tract_L = nibs.load(left_file)
+    tract_R = nibs.load(right_file)
 
-    # sub = Subject(sub_path_L,
-    #             sub_path_R,
-    #             sub_metadata)
+    sub = Subject(tract_L,
+                tract_R,
+                sub_metadata)
 
     
-    # df_display = sub.df.T.astype(str)
+    df_display = sub.df.T.astype(str)
 
-    # st.table(df_display)
+    st.table(df_display)
 
-    # @st.cache
-    # def convert_df(df):
-    #     return df.to_csv().encode('utf-8')
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
     
-    # csv = convert_df(sub.df)
+    csv = convert_df(sub.df)
 
-    # st.download_button(label="Download data as CSV",
-    #                     data=csv,
-    #                     file_name='tract_data.csv',
-    #                     mime='text/csv')
+    st.download_button(label="Download data as CSV",
+                        data=csv,
+                        file_name='tract_data.csv',
+                        mime='text/csv')
 else:
     st.write("""
     ## <- check the sidebar to get started
