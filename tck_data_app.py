@@ -1,0 +1,104 @@
+from re import L
+from tractogram_data import Subject
+import streamlit as st
+from io import StringIO, BytesIO
+import nibabel.streamlines as nibs
+from dipy.tracking.utils import density_map
+import numpy as np
+import nibabel as nib
+
+st.write(
+f"""
+# Fiber tract data extractor.
+
+This app extracts features from **.tck** files according to this publication:
+[Shape analysis of the human association pathways, Fang-Cheng  Yeh, Neuroimage, 2020](https://www.sciencedirect.com/science/article/pii/S1053811920308156)
+
+
+This app is hosted online for all to use.
+To address some privacy concerns:
+- No data is stored online. [find more info here](https://docs.streamlit.io/knowledge-base/using-streamlit/where-file-uploader-store-when-deleted)
+- The app is open source for you to inspect. [github repo here](https://github.com/Dopamineral/xgboost)
+- The "download csv" button below creates data based on everything you can see on the page. And only you have access to this data.
+- Once you close or refresh the browser the data is gone forever. It's annoying but it's safe.
+"""
+)
+
+st.sidebar.write("""
+You found the sidebar, well done. Input all the metadata you want below and upload your files when you're ready.
+
+# Left tract
+
+""")
+left_file = st.sidebar.file_uploader("Left tract .tck file")
+
+st.sidebar.write("# Right tract")
+right_file = st.sidebar.file_uploader("Right tract .tck file")
+
+
+with st.sidebar:
+    st.write('## tract info')
+    tract_info = st.text_input("what kind of tract? (will be type in dataframe)")
+    st.write(f"tract info: '{tract_info}'")
+    st.sidebar.write(" # Subject Metadata")
+
+
+    sub_id = st.text_input('subject id')
+    st.write(f"id: '{sub_id}'")
+    sex = st.selectbox("Subject sex",("male","female","Undefined"))
+    st.write(f"sex: {sex}")
+    age = st.slider('Subject Age', 0, 130, 50)
+    st.write(f'age: {age}')
+    
+    #create some padding
+    for i in range(10):
+        st.write("")
+    
+    st.write("""
+    RP, AR, SS -  2022
+    """)
+
+
+sub_metadata = {"id":str(sub_id),
+                "sex":str(sex),
+                "age":str(age),
+                "tract_name":str(tract_info)}
+
+
+if (left_file is not None) & (right_file is not None):
+
+    st.write("""
+    ## Calculated data from the .tck files
+    
+    """)
+    with st.spinner('Calculating...'):
+                
+        tract_L = nibs.load(left_file)
+        tract_R = nibs.load(right_file)
+
+        sub = Subject(tract_L,
+                    tract_R,
+                    sub_metadata)
+
+        
+        df_display = sub.df.T.astype(str)
+
+        st.table(df_display)
+
+        @st.cache
+        def convert_df(df):
+            return df.to_csv().encode('utf-8')
+        
+        csv = convert_df(sub.df)
+
+        st.download_button(label="Download data as CSV",
+                            data=csv,
+                            file_name='tract_data.csv',
+                            mime='text/csv')
+
+    st.success('Done!')
+else:
+    st.write("""
+    ## <- check the sidebar to get started
+    """)
+
