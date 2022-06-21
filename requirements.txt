@@ -1,0 +1,12 @@
+numpy
+pandas
+nibabel
+matplotlib
+streamlit
+xgboost
+sklearn
+umap-learn
+numba
+scikit-image
+dipy
+ipyvolume
