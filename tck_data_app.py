@@ -27,6 +27,23 @@ To address some privacy concerns:
 st.sidebar.write("""
 You found the sidebar, well done. Input all the metadata you want below and upload your files when you're ready.
 
+If you don't have any .tck files, try these out for size:
+""")
+
+with open("AF_left.tck", "rb") as tck_file_left:
+    tck_L_byte = tck_file_left.read()
+
+st.sidebar.download_button(label="download Test TCK left",
+                            data = tck_L_byte,
+                            file_name="AF_left.tck",
+                             mime='application/octet-stream')
+
+st.sidebar.download_button(label="download Test TCK right",
+                            data = tck_L_byte,
+                            file_name="AF_right.tck",
+                             mime='application/octet-stream')
+
+st.sidebar.write("""
 # Left tract
 
 """)
