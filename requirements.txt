@@ -9,4 +9,6 @@ umap-learn
 numba
 scikit-image
 dipy
-ipyvolume
+umap-learn
+shap
+graphviz
