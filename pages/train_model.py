@@ -320,12 +320,12 @@ with st.spinner("Loading all the plots"):
     st.pyplot(shap.summary_plot(shap_interaction_values, X_test_normal))
 
 
-    fig, axs = plt.subplots(figsize= (50,30))
-    import graphviz
+    # fig, axs = plt.subplots(figsize= (50,30))
+    # import graphviz
 
-    st.write("Example of a tree")
-    st.graphviz_chart(xgb.to_graphviz(model,num_trees=60),
-                        use_container_width=True)
+    # st.write("Example of a tree")
+    # st.graphviz_chart(xgb.to_graphviz(model,num_trees=60),
+    #                     use_container_width=True)
 
     st.write("""
     
