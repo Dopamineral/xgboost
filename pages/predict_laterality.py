@@ -10,7 +10,10 @@ with st.sidebar:
     st.write("""Upload the csv file that was created earlier in **tck data app**""")
     data_file = st.sidebar.file_uploader(".csv file with tract metrics")
 
-    
+# TODO: Predict based on average of 3 models.
+# TODO: add all the logic necessary to make the dashboard
+# TODO: Reformat csv so it matches the df for the model
+# TODO: Load the model and run prediction succesfully
 
 st.write("""
 # Laterality Prediction

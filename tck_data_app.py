@@ -7,6 +7,9 @@ from dipy.tracking.utils import density_map
 import numpy as np
 import nibabel as nib
 
+#TODO: Add upload requirement for reference Nii.
+#TODO: Double check that there is no patient info in the nii files or .tck that I'm putting online.
+
 st.write(
 f"""
 # 🧮 Fiber tract data extractor.
@@ -20,7 +23,7 @@ This app extracts features from **.tck** files in accordance with this publicati
 st.sidebar.write("""
 You found the sidebar, well done. Input all the metadata you want below and upload your files when you're ready.
 
-If you don't have any .tck files, try these out for size:
+If you want to have a go with example files, try these out for size:
 """)
 
 with open("AF_left.tck", "rb") as tck_file_left:
@@ -28,6 +31,9 @@ with open("AF_left.tck", "rb") as tck_file_left:
 
 with open("AF_right.tck", "rb") as tck_file_right:
     tck_R_byte = tck_file_right.read()
+
+with open("AF_right.tck", "rb") as nii_reference_file:
+    nii_ref_byte = nii_reference_file.read()
 
 st.sidebar.download_button(label="💾 download Test TCK left",
                             data = tck_L_byte,
@@ -39,14 +45,21 @@ st.sidebar.download_button(label="💾 download Test TCK right",
                             file_name="AF_right.tck",
                              mime='application/octet-stream')
 
-st.sidebar.write("""
-# Left tract
+st.sidebar.download_button(label="💾 download Reference .nii",
+                            data = nii_ref_byte,
+                            file_name="reference.nii",
+                             mime='application/octet-stream')
 
-""")
-left_file = st.sidebar.file_uploader("Left tract .tck file")
+st.sidebar.write("# ⬇️ Drag and drop your files")
 
-st.sidebar.write("# Right tract")
-right_file = st.sidebar.file_uploader("Right tract .tck file")
+st.sidebar.write("# Left AF tract")
+left_file = st.sidebar.file_uploader("Left AF tract .tck file",key=1)
+
+st.sidebar.write("# Right AF tract")
+right_file = st.sidebar.file_uploader("Right AF tract .tck file",key=2)
+
+st.sidebar.write("# Reference .nii")
+nii_file = st.sidebar.file_uploader("Reference .nii file",key=3)
 
 
 with st.sidebar:
@@ -88,7 +101,7 @@ sub_metadata = {"id":str(sub_id),
                 "tract_name":str(tract_info)}
 
 
-if (left_file is not None) & (right_file is not None):
+if (left_file is not None) & (right_file is not None) & (nii_file is not None):
 
     st.write("""
     ## Calculated data from the .tck files
@@ -99,8 +112,11 @@ if (left_file is not None) & (right_file is not None):
         tract_L = nibs.load(left_file)
         tract_R = nibs.load(right_file)
 
+        nii_bytes = nii_file.read()
+        vol_img = nib.load(nii_bytes)
         sub = Subject(tract_L,
                     tract_R,
+                    vol_img,
                     sub_metadata)
 
     st.success('Done!')

@@ -13,16 +13,13 @@ class Subject():
     Subject class to hold all the tract info / metrics / etc...
     """
 
-    def __init__(self, tract_L, tract_R, meta_data:dict = {}): 
+    def __init__(self, tract_L, tract_R, vol_img, meta_data:dict = {}): 
         
         # you need this reference nii file to succesfully run the streamlines2vol script
-        self.ref_path = "./reference.nii.gz"
-        
+        self.vol_img = vol_img
         #Store subject metadata
         self.meta_data = meta_data
 
-        #Left sided metrics
-        
         #load tract before calling the class
         self.tract_L = tract_L
         self.volume_L = self.streamline2volume(self.tract_L)
@@ -47,9 +44,8 @@ class Subject():
             Returns:
                 - 3D volume (x,y,z) of the subject tract
             """
-            ref_path = './reference.nii.gz'
         
-            reference = nib.load(ref_path)
+            reference = self.vol_img
             ref_affine= reference.affine
             ref_dim = reference.header["dim"][1:4]
             streamlines = tract.tractogram.streamlines 
@@ -137,6 +133,7 @@ class Subject():
         volume_metric = np.sum(tract_vol)
         surface_area_metric = tract_surface_area(tract_vol)
         irregularity_metric = surface_area_metric / (np.pi*diameter_metric*length_metric)
+
 
         # Construct final dictionary to output
         metrics_dict = {'tract_length':[length_metric], #putting in brackets to later import in dataframe
