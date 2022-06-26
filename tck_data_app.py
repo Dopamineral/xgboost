@@ -6,9 +6,9 @@ import nibabel.streamlines as nibs
 from dipy.tracking.utils import density_map
 import numpy as np
 import nibabel as nib
-
-#TODO: Add upload requirement for reference Nii.
-#TODO: Double check that there is no patient info in the nii files or .tck that I'm putting online.
+from io import BytesIO
+import os       
+import tempfile
 
 st.write(
 f"""
@@ -111,9 +111,17 @@ if (left_file is not None) & (right_file is not None) & (nii_file is not None):
                 
         tract_L = nibs.load(left_file)
         tract_R = nibs.load(right_file)
+        # opening .nii files in streamlit is literal hell,
+        # this creates a small temp folder to hold the nii so it can load correctly.
+        # the temp file disappears as soon as you refresh the page
+        temp_local_dir = tempfile.mkdtemp()
+        file_path = file_path = os.path.join(temp_local_dir, "temp.nii")
+        bytes_data = BytesIO(nii_file.getvalue()).read()
+        f = open(file_path,'wb')
+        f.write(bytes_data)
 
-        nii_bytes = nii_file.read()
-        vol_img = nib.load(nii_bytes)
+        vol_img = nib.load(file_path)
+
         sub = Subject(tract_L,
                     tract_R,
                     vol_img,
@@ -133,7 +141,6 @@ if (left_file is not None) & (right_file is not None) & (nii_file is not None):
 
 
     st.write("""
-    
     Download this CSV to keep a copy of this data.
     You will **need this file** for the **laterality prediction** in the other page. 
     """)
