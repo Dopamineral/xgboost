@@ -1,0 +1,14 @@
+numpy
+pandas
+nibabel
+matplotlib
+streamlit
+xgboost
+sklearn
+umap-learn
+numba
+scikit-image
+dipy
+shap
+graphviz
+sklearn-genetic-opt

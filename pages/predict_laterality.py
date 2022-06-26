@@ -1,10 +1,23 @@
 import streamlit as st
 import pandas as pd
 from xgboost import XGBRegressor
-import joblib
+import numpy as np
 import matplotlib.pyplot as plt
 
-optimal_cutoff = 0.003
+def augment_X(df):
+    """add more features to X to add more info in the system"""
+    def make_LI(L, R):
+      return (L -R ) / (L + R)
+
+    df['LI_length'] = make_LI(df.tract_length_L, df.tract_length_R)
+    df['LI_span'] = make_LI(df.tract_span_L, df.tract_span_R)
+    df['LI_curl'] = make_LI(df.tract_curl_L, df.tract_curl_R)
+    df['LI_elongation'] = make_LI(df.tract_elongation_L, df.tract_elongation_R)
+    df['LI_surface_area'] = make_LI(df.tract_surface_area_L, df.tract_surface_area_R)
+    df['LI_irregularity'] = make_LI(df.tract_irregularity_L, df.tract_irregularity_R)
+
+    return df
+
 
 with st.sidebar:
     st.write("""Upload the csv file that was created earlier in **tck data app**""")
@@ -22,73 +35,73 @@ Upload file in sidebar to get laterality prediction
 
 if data_file is not None:
     df = pd.read_csv(data_file)
-    st.dataframe(df)
+    df_display = df.T.astype(str)
+    df_display.columns={"features"}
+    st.dataframe(df_display)
+    
+
+    optimal_cutoff = 0.015 #as found in make_model.py!
 
     df_ready = df.drop(columns=['id','sex','age','tract_name'])
+    X_test = augment_X(df_ready)
+    model1 = XGBRegressor()
+    model2 = XGBRegressor()
+    model3 = XGBRegressor()
+    model1.load_model("XGB_batch_0.json")
+    model2.load_model("XGB_batch_8.json")
+    model3.load_model("XGB_batch_20.json")
 
-    model = XGBRegressor()
-    model.load_model("XGB_model_dev.json")
-    st.info(f"succesfully loaded model: {model}")
-    pred=-0.21
+    pred1 = model1.predict(X_test)
+    pred2 = model2.predict(X_test)
+    pred3 = model3.predict(X_test)
+
+    mean_pred = np.mean([pred1,pred2,pred3])
+
+    st.info(f"succesfully loaded models")
+    st.info(f"succesfully made predictions")
+
+    st.write(mean_pred)
+
     # reducer = joblib.load('reducer_umap.sav')
     # embedding = reducer.transform(df_ready)
 
     col1, col2 = st.columns(2)
     with col1:
         st.write("Model prediction")
-        st.metric(label="Predicted Laterality Index", value = pred, delta="0.85 certainty")
+        st.metric(label="Predicted Laterality Index", value = f'{mean_pred:0.4f}')
 
 
     with col2:
         st.write("Possible Clinical conclusion")
-        st.metric(label="Laterality", value = "Right Dominance")
+        if mean_pred < optimal_cutoff:
+            st.metric(label="Laterality", value = "Right Dominance")
+        else:
+            st.metric(label="Laterality", value = "Left Dominance")
 
-
-
-
-    pred=-0.21
-
-
+    
     st.write("""
 
-    ## Location compared to training data
+    ## Location compared to reference dataset
 
-    To have a more nuanced view of the prediction, please see where this data value falls among the data the the model was trained on.
+    To have a more nuanced view of the prediction, please see where this data value falls among the data the the model was tested on.
 
     """)
-    df_combined_test = pd.read_csv('./population_scores_dev.csv')
+    df_pop = pd.read_csv('./population_performance_mean_model.csv')
+    
     fig, axs = plt.subplots()
-
-    master_alpha = 0.5
-    fig, axs = plt.subplots()
-
-    axs.scatter(df_combined_test.true,df_combined_test.pred,alpha=0.5)
+    axs.scatter(x=df_pop["test"],y=df_pop["pred"],
+                c=df_pop["cols"], alpha=df_pop["alphs"])
     axs.axvline(0)
-    axs.axhline(optimal_cutoff,color='r',label=f'XGB cutoff val: {optimal_cutoff:0.3f}')
-    axs.axhline(pred,color='g',label=f'Predicted Laterality index: {pred}')
-    legend1 = axs.legend(loc='upper right')
-    axs.add_artist(legend1)
+    axs.axhline(optimal_cutoff,color='r',label=f"XGBoost model cutoff: {optimal_cutoff}")
+    axs.axhline(mean_pred,color="lime",label=f"predicted LI: {mean_pred:0.4f}")
+    axs.set_title("Model test set")
+    axs.set_xlabel("LI fMRI")
+    axs.set_ylabel("Predicted LI XGBoost")
+    axs.text(-0.3,0.2,"LEFT",color="r")
+    axs.text(-0.3,-0.2,"RIGHT",color="r")
+    axs.legend()
 
-    axs.set_xlabel('LI fMRI')
-    axs.set_ylabel('XGBoost Prediction')
     st.pyplot(fig)
+    
 
-
-    st.write("""
-
-    ## Location in embedding space
-
-    Again for more nuance, see where the current prediction falls in the UMAP mebedding space of the data that the model was trained on.
-
-    """)
-    embedding_df = pd.read_csv('population_embedding_dev.csv')
-    LI_df = pd.read_csv('population_LI_values.csv')
-
-    fig, axs = plt.subplots()
-    scatter1 = axs.scatter(embedding_df.iloc[:, 1], embedding_df.iloc[:, 2], c=LI_df.LI_fmri, cmap='seismic')
-    axs.scatter([6],[-0.5],color='g',label="PREDICTION",marker='X')
-    legend1 = axs.legend(loc='upper left')
-    axs.add_artist(legend1)
-
-    fig.colorbar(scatter1, label='Laterality Index fMRI',ax=axs)
-    st.pyplot(fig)
+    

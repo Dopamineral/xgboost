@@ -9,6 +9,7 @@ import nibabel as nib
 from io import BytesIO
 import os       
 import tempfile
+import shutil
 
 st.write(
 f"""
@@ -32,7 +33,7 @@ with open("AF_left.tck", "rb") as tck_file_left:
 with open("AF_right.tck", "rb") as tck_file_right:
     tck_R_byte = tck_file_right.read()
 
-with open("AF_right.tck", "rb") as nii_reference_file:
+with open("reference.nii.gz", "rb") as nii_reference_file:
     nii_ref_byte = nii_reference_file.read()
 
 st.sidebar.download_button(label="💾 download Test TCK left",
@@ -45,21 +46,21 @@ st.sidebar.download_button(label="💾 download Test TCK right",
                             file_name="AF_right.tck",
                              mime='application/octet-stream')
 
-st.sidebar.download_button(label="💾 download Reference .nii",
+st.sidebar.download_button(label="💾 download Reference .nii.gz",
                             data = nii_ref_byte,
-                            file_name="reference.nii",
+                            file_name="reference.nii.gz",
                              mime='application/octet-stream')
 
 st.sidebar.write("# ⬇️ Drag and drop your files")
 
-st.sidebar.write("# Left AF tract")
+st.sidebar.write("# Left AF tract .tck")
 left_file = st.sidebar.file_uploader("Left AF tract .tck file",key=1)
 
-st.sidebar.write("# Right AF tract")
+st.sidebar.write("# Right AF tract .tck")
 right_file = st.sidebar.file_uploader("Right AF tract .tck file",key=2)
 
-st.sidebar.write("# Reference .nii")
-nii_file = st.sidebar.file_uploader("Reference .nii file",key=3)
+st.sidebar.write("# Reference .nii.gz")
+nii_file = st.sidebar.file_uploader("Reference .nii.gz file",key=3)
 
 
 with st.sidebar:
@@ -113,14 +114,15 @@ if (left_file is not None) & (right_file is not None) & (nii_file is not None):
         tract_R = nibs.load(right_file)
         # opening .nii files in streamlit is literal hell,
         # this creates a small temp folder to hold the nii so it can load correctly.
-        # the temp file disappears as soon as you refresh the page
+        
         temp_local_dir = tempfile.mkdtemp()
-        file_path = file_path = os.path.join(temp_local_dir, "temp.nii")
+        file_path = file_path = os.path.join(temp_local_dir, 'temp.nii.gz')
         bytes_data = BytesIO(nii_file.getvalue()).read()
-        f = open(file_path,'wb')
-        f.write(bytes_data)
-
+        with open(file_path,'bw') as f:
+            f.write(bytes_data)
+            
         vol_img = nib.load(file_path)
+        # the temp file is deleted as soon as data is loaded
 
         sub = Subject(tract_L,
                     tract_R,
@@ -132,6 +134,7 @@ if (left_file is not None) & (right_file is not None) & (nii_file is not None):
     df_display = sub.df.T.astype(str)
     df_display.columns={"features"}
     st.table(df_display)
+    shutil.rmtree(temp_local_dir)
 
     @st.cache
     def convert_df(df):
